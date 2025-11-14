@@ -1,65 +1,94 @@
-import Image from "next/image";
+import HeroBanner from '@/components/HeroBanner';
+import MovieRow from '@/components/MovieRow';
+import { fetchPopularMovies, fetchTopRatedMovies, fetchUpcomingMovies } from '@/lib/tmdb';
+import type { Movie } from '@/types/movie';
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+export default async function Home() {
+  // Server-side data fetching
+  let popularMovies: Movie[] = [];
+  let topRatedMovies: Movie[] = [];
+  let upcomingMovies: Movie[] = [];
+  let heroMovie: Movie | null = null;
+  let apiError: string | null = null;
+
+  try {
+    // Fetch all movie categories in parallel
+    [popularMovies, topRatedMovies, upcomingMovies] = await Promise.all([
+      fetchPopularMovies(),
+      fetchTopRatedMovies(),
+      fetchUpcomingMovies(),
+    ]);
+
+    // Filter out invalid movies (missing id or title)
+    popularMovies = popularMovies.filter(movie => movie.id && movie.title);
+    topRatedMovies = topRatedMovies.filter(movie => movie.id && movie.title);
+    upcomingMovies = upcomingMovies.filter(movie => movie.id && movie.title);
+
+    // Use the first popular movie as the hero
+    heroMovie = popularMovies[0] || null;
+  } catch (error) {
+    console.error('Error fetching movies:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('TMDB_API_KEY')) {
+        apiError = 'API_KEY_MISSING';
+      } else {
+        apiError = error.message;
+      }
+    }
+  }
+
+  // Show error message if API key is missing
+  if (apiError === 'API_KEY_MISSING') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-2xl text-center">
+          <h1 className="text-4xl font-bold mb-4 text-red-600">API Key Required</h1>
+          <p className="text-xl mb-6 text-gray-300">
+            Please set your TMDB API key in the <code className="bg-gray-800 px-2 py-1 rounded">.env.local</code> file
+          </p>
+          <div className="bg-gray-900 p-6 rounded-lg text-left mb-6">
+            <p className="text-sm text-gray-400 mb-2">Steps to fix:</p>
+            <ol className="list-decimal list-inside space-y-2 text-gray-300">
+              <li>Get your free API key from <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">TMDB</a></li>
+              <li>Open <code className="bg-gray-800 px-2 py-1 rounded">.env.local</code> in your project root</li>
+              <li>Replace <code className="bg-gray-800 px-2 py-1 rounded">your_api_key_here</code> with your actual API key</li>
+              <li>Restart the development server</li>
+            </ol>
+          </div>
+          <p className="text-sm text-gray-500">
+            Current value: <code className="bg-gray-800 px-2 py-1 rounded text-red-400">your_api_key_here</code> (placeholder)
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen">
+      {heroMovie && <HeroBanner movie={heroMovie} />}
+      
+      <div className="py-8">
+        {popularMovies.length > 0 && (
+          <div id="popular" className="scroll-mt-20">
+            <MovieRow movies={popularMovies} categoryTitle="Popular Movies" />
+          </div>
+        )}
+        {topRatedMovies.length > 0 && (
+          <div id="top-rated" className="scroll-mt-20">
+            <MovieRow movies={topRatedMovies} categoryTitle="Top Rated" />
+          </div>
+        )}
+        {upcomingMovies.length > 0 && (
+          <div id="upcoming" className="scroll-mt-20">
+            <MovieRow movies={upcomingMovies} categoryTitle="Upcoming" />
+          </div>
+        )}
+        {popularMovies.length === 0 && topRatedMovies.length === 0 && upcomingMovies.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No movies available. Please check your API key.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
