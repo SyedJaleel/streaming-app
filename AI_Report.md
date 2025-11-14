@@ -96,8 +96,8 @@ This project is a simplified streaming service dashboard (similar to Netflix/Hul
 ## Deployment Information
 
 ### Vercel Deployment
-- **Live URL**: [To be added after deployment]
-- **GitHub Repository**: [To be added after pushing to GitHub]
+- **Live URL**: https://streaming-app-ochre-theta.vercel.app
+- **GitHub Repository**: https://github.com/SyedJaleel/streaming-app.git
 
 ### Environment Variables
 The following environment variable must be set in Vercel:
